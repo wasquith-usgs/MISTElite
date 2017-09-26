@@ -31,3 +31,12 @@ vignettes/*.pdf
 # Temporary files created by R markdown
 *.utf8.md
 *.knit.md
+
+# Desktop files created in OSX
+.DS_Store
+
+# MISTE vartmp files
+vartmp/*.txt
+vartmp/*.pdf
+vartmp/*.csv
+vartmp/*.RData
