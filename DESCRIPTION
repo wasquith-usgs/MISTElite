@@ -1,0 +1,20 @@
+Package: MISTElite
+Type: Package
+Title: Experimental Light-Weight Shiny App for Streamflow Missing-Data Estimation
+Version: 0.001
+Description: Created for the estimation of unit value streamflow data.
+Depends: R (>= 3.3)
+License: GPL (>=2)
+Copyright: This software is in the public domain because it contains materials
+    that originally came from the United States Geological Survey, an agency of
+    the United States Department of Interior.
+Encoding: UTF-8
+LazyData: true
+Authors@R: c( person("William", "Asquith", role = c("aut", "cre"),
+              email = "wasquith@usgs.gov"))
+Maintainer: William Asquith <wasquith@usgs.gov>
+Imports:
+  chron,
+  dataRetrieval,
+  shiny,
+  mgcv
