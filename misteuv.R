@@ -9,6 +9,8 @@ zeroValue <- 0.001
 messVerb  <- TRUE
 devVerb   <- FALSE
 my.purple <- "#9b42f4"
+my.model.color  <- "#48ce53"
+my.pred.color <- rgb(0,0.435, 0.254)
 my.red2   <- "#f48241"
 
 # MISTE INTERFACE
@@ -17,18 +19,39 @@ misteHB <- function(...) h5(...)
 misteHC <- function(...) h6(...)
 
 # MISTE DATA INTERCONNECTION
-misteUVget <- function(siteNumber, pCode="00060", sdate="", edate="", stime="", etime="",
+misteUVget <- function(siteNumber, pCode="00060",
+                       sdate="", edate="", stime="", etime="",
+                       ex.sdate="", ex.edate="", ex.stime="", ex.etime="",
+                       tigger.exclude=FALSE,
                        message="", storestring="", earlyexit=FALSE, debug=FALSE, ...) {
-   sdatetime <- paste0(sdate,"T",stime); sdt <- paste0(sdate," ",stime)
-   edatetime <- paste0(edate,"T",etime); edt <- paste0(edate," ",etime)
-   if(messVerb) message("MISTElite getting ",message," for\n",
-                        "                   ",siteNumber,
-                         " (",as.character(format(sdt, usetz=TRUE)), " LOC to ",
-                              as.character(format(edt, usetz=TRUE)), " LOC)")
+   sdatetime <- paste0(sdate,"T",stime,"Z"); sdt <- paste0(sdate," ",stime)
+   edatetime <- paste0(edate,"T",etime,"Z"); edt <- paste0(edate," ",etime)
+   if(messVerb) message("MISTElite get ",message," for\n",
+                          "                   ",siteNumber,
+                          " (",as.character(format(sdt, usetz=TRUE)), " UTC to ",
+                               as.character(format(edt, usetz=TRUE)), " UTC)")
+   #if(messVerb) message("          dataRetrieval::readNWISuv(",sdatetime, " to ", edatetime,")")
    rawData <- dataRetrieval::readNWISuv(siteNumber, parameterCd=pCode,
                                         startDate=sdatetime, endDate=edatetime, tz="", ...)
    rawData <- dataRetrieval::renameNWISColumns(rawData)
    if(earlyexit) return(rawData) # for debugging.
+
+   if(tigger.exclude) {
+     ex.sdatetime <- paste0(ex.sdate,"T",ex.stime,"Z"); ex.sdt <- paste0(ex.sdate," ",ex.stime)
+     ex.edatetime <- paste0(ex.edate,"T",ex.etime,"Z"); ex.edt <- paste0(ex.edate," ",ex.etime)
+     ex.rawData <- dataRetrieval::readNWISuv(siteNumber, parameterCd=pCode,
+                                             startDate=ex.sdatetime, endDate=ex.edatetime, tz="", ...)
+     ex.start <- ex.rawData$dateTime[1]; ex.end <- ex.rawData$dateTime[length(ex.rawData$dateTime)]
+     n <- length(rawData$dateTime)
+     print(n)
+     rawData <- rawData[rawData$dateTime < ex.start | rawData$dateTime > ex.end, ]
+          n <- length(rawData$dateTime)
+     print(n)
+     #rawData <- rawData[rawData$dateTime > ex.end,   ]
+     #     n <- length(rawData$dateTime)
+     #print(n)
+   }
+
    assign(paste0("rawData","_",storestring), rawData, envir=MISTE) # Archive data
    sdt <- rawData$dateTime[1]; edt <- rawData$dateTime[length(rawData$dateTime)]
    if(messVerb) message("MISTElite got ",message," for\n",
@@ -42,7 +65,7 @@ misteUVget <- function(siteNumber, pCode="00060", sdate="", edate="", stime="", 
 #UVy <- misteUVget("08167500", sdate="2013-10-01", stime="02:00",edate="2013-10-02", etime="05:00")
 
 misteUVmerge <- function(x, y, core.origin="2005-01-01", ...) {
-   if(messVerb) message("MISTElite merging the data retrievals (predictor / response)")
+   if(messVerb) message("MISTElite merge the data retrievals (predictor / response)")
    # The use of an string of the date-time have the timezone ("UTC") should be superfluous, but WHA
    # is trying to get rid of CST/CDT in the "Product Graphic" and output
    x$dateTimeSTRING <- as.character(format(x$dateTime, usetz=TRUE))
@@ -64,7 +87,7 @@ misteUVmerge <- function(x, y, core.origin="2005-01-01", ...) {
    delPosix <- sort(unique(POSIXdiff)); delChron <- sort(unique(CHRONdiff))
    if(messVerb) message("MISTElite time gap analysis (POSIX time math, seconds): ",
            paste(delPosix, collapse=","))
-   if(messVerb) message("                             (CHRON time math, seconds): ",
+   if(messVerb) message("                            (CHRON time math, seconds): ",
            paste(delChron, collapse=","))
    GlobalDeltaTime <- delPosix[1] # TODO, unverified logic
    if(messVerb) message("                         delta time stamp: ",
@@ -95,7 +118,7 @@ misteDateRange2Dates <- function(shiny_dates, ...) {
 }
 
 misteHHMM2time <- function(hhmm) {
-   if(messVerb) message("MISTElite parsing time using misteHHMM2time() on string '", hhmm, "'")
+   if(messVerb) message("MISTElite parse time use misteHHMM2time() on string '", hhmm, "'")
 
    HHMM <- unlist(strsplit(hhmm, "tz")) # optional trailing timezone offset
    if(length(HHMM) == 1) {
@@ -113,13 +136,13 @@ misteHHMM2time <- function(hhmm) {
       time2 <- unlist(strsplit(HHMM[2], ":"))
       if(any(as.numeric(c(time1[1], time2[1])) <  0) |
          any(as.numeric(c(time1[1], time2[1])) > 24)) {
-         warning("erroneous hour, stripping out HH:MM and continuing")
+         warning("erroneous hour, strip out HH:MM and continue")
          return(list(timeparsed=FALSE, stime="",   etime="",
                                        shhmmss="", ehhmmss=""))
       }
       if(any(as.numeric(c(time1[2], time2[2])) <  0) |
          any(as.numeric(c(time1[2], time2[2])) > 59)) {
-         warning("erroneous minute, stripping out HH:MM and continuing")
+         warning("erroneous minute, strip out HH:MM and continue")
          return(list(timeparsed=FALSE, stime="",   etime="",
                                        shhmmss="", ehhmmss=""))
       }
@@ -132,7 +155,7 @@ misteHHMM2time <- function(hhmm) {
                            hh2=time2[1], mm2=time2[2], ss2="00",
                   tz=TZ))
    }
-   warning("time range parsing failure, stripping out HH:MM and continuing")
+   warning("time range parse failure, strip out HH:MM and continue")
    return(list(timeparsed=FALSE, stime="", etime="", shhmmss="", ehhmmss=""))
 }
 
@@ -141,7 +164,7 @@ misteHHMM2time <- function(hhmm) {
 misteMODELpreprocess <- function(xy, input, ...) {
    #print(c(input$site1.lower.cutout, input$site1.upper.cutout))
    #print(c(input$site2.lower.cutout, input$site2.upper.cutout))
-   if(messVerb) message("MISTElite preprocessing data")
+   if(messVerb) message("MISTElite preprocess data")
    if(messVerb) message("           prior to discharge cuts, sample size n=",
            length(xy$response[! is.na(xy$response) & ! is.na(xy$predictor)]))
    xy$predictor[xy$predictor < input$site1.lower.cutout |
@@ -164,12 +187,14 @@ misteMODELpreprocess <- function(xy, input, ...) {
    B <- data.frame(linkinseconds=xy$uvPOSIXepoch,        xy$response,
                    dateTime=xy$dateTime)
    AB <- merge(A, B, by="linkinseconds", all=TRUE)
-   AB <- AB[complete.cases(AB), ]
+
    #print(sum(AB$xy.predictor, na.rm=TRUE))
    AB$predictor    <- AB$xy.predictor;  AB$response     <- AB$xy.response
    AB$dateTime     <- AB$dateTime.y;    AB$uvPOSIXepoch <- AB$linkinseconds
    AB$xy.predictor <- AB$xy.response <- NULL
    assign("true.time.matched.XY", xy, envir=MISTE)
+   assign("XYwith.incompletes", AB, envir=MISTE)
+   AB <- AB[complete.cases(AB), ]
    assign("XY", AB, envir=MISTE)
    return(AB)
 }
@@ -200,11 +225,11 @@ misteMODEL_ols <- function(X,Y, input, ...) {
 misteMODEL_gam <- function(X,Y, input, ...) {
    isXlog <- input$cb.log.site1
    isYlog <- input$cb.log.site2
-
+    knots <- input$modelgam.knots
    # separate calls lm() so log file shows the transforms in the "call" section
    if(isXlog & isYlog) {
       X[X == 0] <- NA; Y[Y == 0] <- NA
-      LM <- gam(log10(Y)~s(log10(X)), ...)
+      LM <- gam(log10(Y)~s(log10(X), bs="cr", k=knots), ...)
    } else if(isXlog) {
       X[X == 0] <- NA
       LM <- gam(Y~s(log10(X)), ...)
@@ -220,7 +245,7 @@ misteMODEL_gam <- function(X,Y, input, ...) {
 
 misteMODEL <- function(xy, input, ...) {
    XY <- misteMODELpreprocess(xy, input)
-   if(messVerb) message("MISTElite making model ", appendLF=FALSE)
+   if(messVerb) message("MISTElite make model ", appendLF=FALSE)
    XY <- XY[complete.cases(XY), ]; X <- XY$predictor; Y <- XY$response
    misteMODELminimum.data <- 10
    if(length(X) <= misteMODELminimum.data) {
@@ -283,7 +308,7 @@ misteMODELpredict <- function(data, input, ...) {
    LM <- get("LM", envir=MISTE)
    X <- data$Flow_Inst
    if(length(X) == 0) {
-      if(messVerb) message("** MISTElite ERROR: insufficient data for making predictions")
+      if(messVerb) message("** MISTElite ERROR: insufficient data for make predictions")
       return(NA)
    }
 
@@ -354,11 +379,21 @@ misteMODELpredict <- function(data, input, ...) {
    site2UVpredicted$Flow_Inst_upr <- Y$upr
    site2UVpredicted$Flow_Inst_cd  <- rep("MISTE", length(X))
 
-   file <- "./vartmp/MISTE_site2_predict(DECODES).csv"
+   file <- "./vartmp/MISTE_site2_predict.csv"
    write.table(site2UVpredicted, file=file, sep=",",
                row.names=FALSE, quote=FALSE)
-   if(messVerb) message("MISTElite making predictions in file    '", file, "'")
-
+   if(messVerb) message("MISTElite make predictions in file    '", file, "'")
+   #print(head(site2UVpredicted))
+   mud <- data.frame(dateTime=site2UVpredicted$dateTime_atSite2, Flow=site2UVpredicted$Flow_Inst,
+                     stringsAsFactors=FALSE)
+   if(input$cb.makemud) {
+      se   <- dateTime2tinyFormat(c(mud$dateTime[1], mud$dateTime[length(mud$dateTime)]))
+      file <- paste0("./vartmp/data", input$site2, "_", se[1], "Z_", se[2], "Z.mud")
+      write.table(mud, file=file, sep=",", row.names=FALSE, quote=FALSE)
+      if(messVerb) message("MISTElite make Aquarius.mud in file   '", file, "'")
+   }
+   assign("mud",        mud,                         envir=MISTE)
+   assign("site2UVpredicted", site2UVpredicted,      envir=MISTE)
    assign("predY",    Y$fit,                         envir=MISTE)
    assign("predYlwr", Y$lwr,                         envir=MISTE)
    assign("predYupr", Y$upr,                         envir=MISTE)
@@ -367,6 +402,16 @@ misteMODELpredict <- function(data, input, ...) {
    assign("pred.dateTime_atSite2", dateTime_atSite2, envir=MISTE)
 }
 
+"dateTime2tinyFormat" <- function(x) {
+   sapply(x, function(s) { #s <- as.character(format(s, usetz=TRUE))
+       #print(s)
+       s <- gsub("\\s+", "T", s); #print(s)
+       s <- gsub(":", "", s);# print(s)
+       s <- gsub("-", "", s); #print(s)
+       s <- gsub("TUTC", "", s); #if(nchar(s) == 8) s <- paste0(s,"T000000")
+       return(s)
+   })
+}
 
 "Do_misteModel_and_PredictNeed_overlap" <- function() {
      XY <- get("datamergeXY",         envir=MISTE)
@@ -385,7 +430,7 @@ misteMODELpredict <- function(data, input, ...) {
 # MISTE TEXTUAL OUTPUT
 misteMODELlogsummary <- function(sumLM,
                          logfile="./vartmp/MISTE_model_summary.txt", ...) {
-  if(messVerb) message("MISTElite sinking model summary to file '",
+  if(messVerb) message("MISTElite sink model summary to file '",
            logfile, "'")
   sink(file=logfile)
     print(sumLM) # R lm() dependency
@@ -447,7 +492,7 @@ misteTimeSeriesPlot_Inputs <- function(input, pdfoutput=FALSE, ...) {
 
    XY <- get("datamergeXY", envir=MISTE)
    D <- XY$dateTime; X <- XY$predictor; Y <- XY$response
-   XYm <- get("XY", envir=MISTE)
+   XYm <- get("XYwith.incompletes", envir=MISTE)
    Dm <- XYm$dateTime; Xm <- XYm$predictor; Ym <- XYm$response
 
    xlab="CALENDAR TIME"
@@ -528,11 +573,11 @@ misteTimeSeriesPlot_Inputs <- function(input, pdfoutput=FALSE, ...) {
       lines(D,X,   lwd=1.6, col=2, lty=2)
       lines(D,Y,   lwd=1.6, col=4)
       lines(Dm,Xm, lwd=1.6, col=my.red2)
-      miste.mtext("INPUT (site1=red, site2=blue, dash='site1 lagged')")
+      miste.mtext("INPUT (site1=orange, site2=blue, dash='site1 lagged')")
    }
    if(pdfoutput) {
      file <- "./vartmp/MISTE_timeseries_input.pdf"
-     if(messVerb) message("MISTElite making input time series plot '", file, "'")
+     if(messVerb) message("MISTElite make input time series plot '", file, "'")
      mistePDF(file, input); afunc(); dev.off()
    } else {
      afunc()
@@ -658,8 +703,15 @@ misteTimeSeriesPlot_Product <- function(input, pdfoutput=FALSE, ...) {
                                       lty=2, col=8, lwd=gridline.widths[i])
         }
       }
+      if(messVerb & ! pdfoutput) {
+         epochentry <- bQ[length(bQ)]; epochexit <- aQ[1]
+         if(isYlog) { epochentry <- 10^epochentry; epochexit <- 10^epochexit }
+         message("MISTElite left-right anchors: Q = [",
+                  epochentry, " <=> ", epochexit,  "] cfs (on-the-fly determined)")
+      }
       lines(bDT, bQ, lty=4, col=4, lwd=0.76)
       lines(aDT, aQ, lty=4, col=4, lwd=0.76)
+
       k <- length(DTsite1); j <- length(DTsite2)
       lines(rep(DTsite1[1], 2), par()$usr[3:4], lty=3, col=my.red2, lwd=0.76)
       lines(rep(DTsite1[k], 2), par()$usr[3:4], lty=3, col=my.red2, lwd=0.76)
@@ -675,7 +727,7 @@ misteTimeSeriesPlot_Product <- function(input, pdfoutput=FALSE, ...) {
          lines(DTsite2, Ylo, lwd=1.4, col=4, lty=2)
          lines(DTsite2, Yhi, lwd=1.4, col=4, lty=2)
       }
-      miste.mtext("MISTElite'd (site1=red, site2=blue, dash='predict interval')")
+      miste.mtext("MISTElite'd (site1=orange, site2=blue, dash='predict interval')")
       if(input$cb.shape.transform) { # ShapeTransformation
         points(DTsite2[1],                inQ, pch=8, col="#3262c1", cex=2, lwd=.89)
         points(DTsite2[length(DTsite2)], outQ, pch=8, col="#3262c1", cex=2, lwd=.89)
@@ -683,7 +735,7 @@ misteTimeSeriesPlot_Product <- function(input, pdfoutput=FALSE, ...) {
    }
    if(pdfoutput) {
      file <- "./vartmp/MISTE_timeseries_miste.pdf"
-     if(messVerb) message("MISTElite making miste time series plot '", file, "'")
+     if(messVerb) message("MISTElite make miste time series plot '", file, "'")
      mistePDF(file, input); afunc(); dev.off()
    } else {
      afunc()
@@ -714,7 +766,7 @@ misteResidualPlot <- function(input, pdfoutput=FALSE, ...) {
 
    if(pdfoutput) {
      file <- "./vartmp/MISTE_residuals.pdf"
-     if(messVerb) message("MISTElite making regress-residual plot  '", file, "'")
+     if(messVerb) message("MISTElite make regress-residual plot  '", file, "'")
      mistePDF(file, input); afunc(); dev.off()
    } else {
      afunc()
@@ -756,18 +808,16 @@ mistePredictionPlot <- function(input, pdfoutput=FALSE, ...) {
       points(X, Y, cex=1.2, lwd=0.71, col=my.purple)
       rug(jitter(X), side=1, ticksize=0.02, col=my.purple)
       rug(jitter(Y), side=2, ticksize=0.02, col=my.purple)
-      lines(swathX, swathY, lwd=2.3, col="#48ce53")
       for(i in 1:length(predY)) {
-         lines(rep(predX[i], 2), c(predYlwr[i], predYupr[i]),
-               col=rgb(0,0.435, 0.254), lwd=0.75)
+         lines(rep(predX[i], 2), c(predYlwr[i], predYupr[i]), col=my.pred.color, lwd=0.75)
       }
-      points(predX, predY,
-             col=rgb(0,0.435, 0.254), pch=21, bg=grey(0.90), cex=1.3, lwd=0.8)
+      points(predX, predY, col=my.pred.color, pch=21, bg=grey(0.90), cex=1.3, lwd=0.8)
+      lines(swathX, swathY, lwd=2.3, col=my.model.color)
       miste.mtext("MISTElite PREDICTIONS")
    }
    if(pdfoutput) {
      file <- "./vartmp/MISTE_predictions.pdf"
-     if(messVerb) message("MISTElite making prediction plot        '", file, "'")
+     if(messVerb) message("MISTElite make prediction plot        '", file, "'")
      mistePDF(file, input); afunc(); dev.off()
    } else {
      afunc()
@@ -822,11 +872,11 @@ misteLagCorrPlot <- function(input, pdfoutput=FALSE, ...) {
       points(max.del, max(cors),     pch=16,  col=6, cex=1.2)
       lines(rep(corlag, 2), c(-1,1), lwd=1.1, col=rgb(0, 0.435, 0.254))
       mtext(paste0("Lag Maximizes at ", max.del/seconds.to.hours,
-                   " hours or ", max.del, " seconds"))
+                   " hours or ", max.del/60, " minutes"))
    }
    if(pdfoutput) {
      file <- "./vartmp/MISTE_lagcorr.pdf"
-     if(messVerb) message("MISTElite making lag autocorr plot      '", file, "'")
+     if(messVerb) message("MISTElite make lag autocorr plot      '", file, "'")
      mistePDF(file, input); afunc(); dev.off()
    } else {
      afunc()
@@ -873,7 +923,7 @@ misteBoxPlot <- function(input, pdfoutput=FALSE, ...) {
    }
    if(pdfoutput) {
      file <- "./vartmp/MISTE_boxplot.pdf"
-     if(messVerb) message("MISTElite making distribution boxplots  '", file, "'")
+     if(messVerb) message("MISTElite make distribution boxplots  '", file, "'")
      mistePDF(file, input); afunc(); dev.off()
    } else {
      afunc()

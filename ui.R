@@ -8,7 +8,7 @@ wdW   <-  "8em"; hhdW  <- "18em"; wdID  <- "10em"
 shinyUI(fluidPage(
   # Application title
   titlePanel(title=h3("Simple USGS NWIS Missing Record Estimator (MISTElite)"),
-             windowTitle="USGS-NWIS MISTE"),
+             windowTitle="USGS-NWIS MISTElite"),
   navlistPanel("Cntrls", widths = c(1, 10),
   tabPanel("Sites",
   fluidRow(
@@ -38,10 +38,10 @@ shinyUI(fluidPage(
   ),
   fluidRow(
      column(3, textInput("inputtimes",
-               misteHC("HH:MMtoHH:MMtz[worktodo]"),
+               misteHC("HH:MMtoHH:MM [UTC]"),
                        value="12:00to14:00", width=hhdW)),
      column(3, textInput("outputtimes",
-               misteHC("HH:MMtoHH:MMtz[worktodo]"),
+               misteHC("HH:MMtoHH:MM [UTC]"),
                        value="02:00to23:00", width=hhdW)),
      column(3,numericInput("target.exit.discharge",
                  misteHC("Target discharge on epoch exit (cfs)"),
@@ -84,15 +84,23 @@ shinyUI(fluidPage(
                  misteHC("Corr window (+-hrs)"),
                          value=1000, min=0, max=10000, step=1, width=wdW)),
      column(2,checkboxInput("cb.modelgam",
-       misteHC("GAM model"),  value = TRUE))
+                 misteHC("GAM model"),  value = TRUE),
+              numericInput("modelgam.knots",
+                 misteHC("Basis dimension"), value=-1, min=-1, max=100, step=1))
   ) # tabs
   ),
+  tabPanel("Anchor",
+    fluidRow(column(2,textInput("other.anchors",
+                 misteHB("Other anchors"),
+                         value="NOTRUNNING")))
+  ), # tabs
   fluidRow(
      column(2, submitButton("MISTE it!")),
-     column(4, em("MISTElite 0.001 (wha)"))
+     column(4, em("MISTElite 0.001 (wha)")),
+     column(2,checkboxInput("cb.makemud", misteHC("MUD output"), value=TRUE))
   ),
   fluidRow(
-     column(8, em(paste0("Note: ./vartmp/ has text and pdf  files including ",
+     column(8, em(paste0("Note: ./vartmp/ has text and pdf files including ",
                          "a csv file 'ready' for DECODES. Input time window ",
                          "for data input retrieval is not affected, by ",
                          "correlation lag setting, that is, it is not ",

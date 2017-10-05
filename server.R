@@ -20,7 +20,7 @@ shinyServer(function(input, output) {
      tmp$dateTime <- as.character(format(tmp$dateTime, usetz=TRUE))
      file <- "./vartmp/MISTE_site1data(predictor).txt"
      write.table(tmp, file=file, row.names=FALSE, quote=FALSE, sep="\t")
-     if(messVerb) message("MISTElite archiving data in file '", file, "'")
+     if(messVerb) message("MISTElite archive data in file '", file, "'")
      return(UVs)
   })
 
@@ -32,16 +32,28 @@ shinyServer(function(input, output) {
      dataExtract_inputtimes <- reactive({input$inputtimes})
        misteinputtimes <- dataExtract_inputtimes()
        misteinputtimes <- misteHHMM2time(misteinputtimes)
+
+     dataExtract_outputdates <- reactive({input$outputdates})
+       misteoutputdates <- dataExtract_outputdates()
+       misteoutputdates <- misteDateRange2Dates(misteoutputdates)
+     dataExtract_outputtimes <- reactive({input$outputtimes})
+       misteoutputtimes <- dataExtract_outputtimes()
+       misteoutputtimes <- misteHHMM2time(misteoutputtimes)
+
      UVs <- misteUVget(input$site2, sdate=misteinputdates$sdate$sdate,
                                     edate=misteinputdates$edate$edate,
                                     stime=misteinputtimes$stime,
                                     etime=misteinputtimes$etime,
+                                 ex.sdate=misteoutputdates$sdate$sdate,
+                                 ex.edate=misteoutputdates$edate$edate,
+                                 ex.stime=misteoutputtimes$stime,
+                                 ex.etime=misteoutputtimes$etime, tigger.exclude=TRUE,
                        storestring="inputSite2", message="data for regression")
      tmp <- UVs
      tmp$dateTime <- as.character(format(tmp$dateTime, usetz=TRUE))
      file <- "./vartmp/MISTE_site2data(response).txt"
      write.table(tmp, file=file, row.names=FALSE, quote=FALSE, sep="\t")
-     if(messVerb) message("MISTElite archiving data in file '", file, "'")
+     if(messVerb) message("MISTElite archive data in file '", file, "'")
      return(UVs)
   })
 
@@ -70,8 +82,8 @@ shinyServer(function(input, output) {
         real_edt <- unlist(strsplit(as.character(edt), " ", perl=TRUE))
         real_sdt[2] <- paste0(real_sdt[2],misteoutputtimes$tz)
         real_edt[2] <- paste0(real_edt[2],misteoutputtimes$tz)
-        if(real_sdt[2] == "NA") real_sdt[2] <- paste0("00:00:00",misteoutputtimes$tz)
-        if(real_edt[2] == "NA") real_edt[2] <- paste0("00:00:00",misteoutputtimes$tz)
+        if(real_sdt[2] == "NA") real_sdt[2] <- paste0("00:00:00", misteoutputtimes$tz)
+        if(real_edt[2] == "NA") real_edt[2] <- paste0("00:00:00", misteoutputtimes$tz)
 
         seconds.to.hours <- 60*60
         proposed_sdt <- sdt - corlag*seconds.to.hours # sign convention is to subtract
@@ -82,8 +94,8 @@ shinyServer(function(input, output) {
                                  as.character(format(proposed_edt, usetz=TRUE)))
         proposed_sdt <- unlist(strsplit(as.character(proposed_sdt), " ", perl=TRUE))
         proposed_edt <- unlist(strsplit(as.character(proposed_edt), " ", perl=TRUE))
-        proposed_sdt[2] <- paste0(proposed_sdt[2],misteoutputtimes$tz)
-        proposed_edt[2] <- paste0(proposed_edt[2],misteoutputtimes$tz)
+        proposed_sdt[2] <- paste0(proposed_sdt[2], misteoutputtimes$tz)
+        proposed_edt[2] <- paste0(proposed_edt[2], misteoutputtimes$tz)
 
         beforsdt <- sdt - 24*seconds.to.hours; #print(beforsdt)
         afteredt <- edt + 24*seconds.to.hours; #print(afteredt)
@@ -128,26 +140,26 @@ shinyServer(function(input, output) {
      tmp$dateTime <- as.character(format(tmp$dateTime, usetz=TRUE))
      file <- "./vartmp/MISTE_site1data(forprediction).txt"
      write.table(tmp, file=file, row.names=FALSE, quote=FALSE, sep="\t")
-     if(messVerb) message("MISTElite archiving data in file        '", file, "'")
+     if(messVerb) message("MISTElite archive data in file        '", file, "'")
      Do_misteModel_and_PredictNeed_overlap()
 
      tmp <- BEFORE_UVs
      tmp$dateTime <- as.character(format(tmp$dateTime, usetz=TRUE))
      file <- "./vartmp/MISTE_site2data(beforeaugment).txt"
      write.table(tmp, file=file, row.names=FALSE, quote=FALSE, sep="\t")
-     if(messVerb) message("MISTElite archiving data in file        '", file, "'")
+     if(messVerb) message("MISTElite archive data in file        '", file, "'")
 
      tmp <- AFTER_UVs
      tmp$dateTime <- as.character(format(tmp$dateTime, usetz=TRUE))
      file <- "./vartmp/MISTE_site2data(afteraugment).txt"
      write.table(tmp, file=file, row.names=FALSE, quote=FALSE, sep="\t")
-     if(messVerb) message("MISTElite archiving data in file        '", file, "'")
+     if(messVerb) message("MISTElite archive data in file        '", file, "'")
 
      return(UVs)
   })
 
   output$Plots <- renderPlot({
-    message("-------- MISTE beginning")
+    message("-------- MISTE begin")
     site1UV <- dataExtract_site1()
     site2UV <- dataExtract_site2()
     XY <- misteUVmerge(site1UV, site2UV)
@@ -181,16 +193,15 @@ shinyServer(function(input, output) {
          misteBoxPlot(               input, pdfoutput=TRUE)
     }
     file <- "./vartmp/MISTE.RData"
-    if(messVerb) message("MISTElite saving the MISTE R-envir in   '", file, "'")
+    if(messVerb) message("MISTElite save the MISTE R-envir in   '", file, "'")
     save(MISTE, file=file)
     MISTE <- new.env() # WIPE MISTE
-    #message("MISTE wiping the MISTE R-envir in runtime session")
-    message("  WA-TODO: archive MISTElite settings and archival report.")
-    message("  BB-TODO: GAM prediction limits.")
-    message(" WA?-TODO: more introspection of local time zone implicitness.")
-    message("WABB-TODO: lag cause need of same data as used to build the model.")
-    message("  WA-TODO: code cleaning and use misteLogarithms()")
-    message("-------- MISTElite ending"); message("")
+    #message("MISTE wipe the MISTE R-envir in runtime session")
+    message("  WHA-TODO: archive MISTElite settings and archival report.")
+    message("  WHA-TODO: more introspection of local-time zone implicitness.")
+    message("  WHA-TODO: code cleaning and use misteLogarithms()")
+    message("  WHA-TODO: MUD file specifications (formal?)")
+    message("-------- MISTElite end"); message("")
   }, width=plotrendW, height=plotrendH)
 })
 
