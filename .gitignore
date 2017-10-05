@@ -40,3 +40,4 @@ vartmp/*.txt
 vartmp/*.pdf
 vartmp/*.csv
 vartmp/*.RData
+.Rproj.user
