@@ -40,4 +40,5 @@ vartmp/*.txt
 vartmp/*.pdf
 vartmp/*.csv
 vartmp/*.RData
+vartmp/*.mud
 .Rproj.user

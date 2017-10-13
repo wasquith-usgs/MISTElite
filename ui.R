@@ -89,11 +89,6 @@ shinyUI(fluidPage(
                  misteHC("Basis dimension"), value=-1, min=-1, max=100, step=1))
   ) # tabs
   ),
-  tabPanel("Anchor",
-    fluidRow(column(2,textInput("other.anchors",
-                 misteHB("Other anchors"),
-                         value="NOTRUNNING")))
-  ), # tabs
   fluidRow(
      column(2, submitButton("MISTE it!")),
      column(4, em("MISTElite 0.001 (wha)")),
@@ -101,17 +96,15 @@ shinyUI(fluidPage(
   ),
   fluidRow(
      column(8, em(paste0("Note: ./vartmp/ has text and pdf files including ",
-                         "a csv file 'ready' for DECODES. Input time window ",
-                         "for data input retrieval is not affected, by ",
-                         "correlation lag setting, that is, it is not ",
-                         "inflated (left and right).")))
+                         "a .mud file for AQ.")))
   )
   ),
    # Show a plot of the generated distribution
    mainPanel(
-      h4("MISTE Diagnostics and Graphics"),
+      plotOutput("Plots", width=plotW, height=plotH),
+      h4("MISTE Diagnostics"),
       h5(textOutput("lmdia.text")),
       h5(textOutput("lmres.text")),
-      plotOutput("Plots", width=plotW, height=plotH)
+      h5(textOutput("lmepc.text"))
    )
 ))

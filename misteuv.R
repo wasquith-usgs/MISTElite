@@ -43,10 +43,10 @@ misteUVget <- function(siteNumber, pCode="00060",
                                              startDate=ex.sdatetime, endDate=ex.edatetime, tz="", ...)
      ex.start <- ex.rawData$dateTime[1]; ex.end <- ex.rawData$dateTime[length(ex.rawData$dateTime)]
      n <- length(rawData$dateTime)
-     print(n)
+     #print(n)
      rawData <- rawData[rawData$dateTime < ex.start | rawData$dateTime > ex.end, ]
           n <- length(rawData$dateTime)
-     print(n)
+     #print(n)
      #rawData <- rawData[rawData$dateTime > ex.end,   ]
      #     n <- length(rawData$dateTime)
      #print(n)
@@ -419,8 +419,8 @@ misteMODELpredict <- function(data, input, ...) {
      OT$dateTimeSTRING <- as.character(format(OT$dateTime, usetz=TRUE))
      num_overlap <- length(intersect(XY$dateTimeSTRING, OT$dateTimeSTRING))
      if(num_overlap > 0) {
-        message("MISTElite EXCEPTION: model time overlaps with prediction ",
-                "time, ",num_overlap, " time stamps overlap!")
+        message("MISTElite model time overlapping prediction ",
+                "time, ",num_overlap, " time stamps overlap")
         return(TRUE)
      }
      return(FALSE)
@@ -430,7 +430,7 @@ misteMODELpredict <- function(data, input, ...) {
 # MISTE TEXTUAL OUTPUT
 misteMODELlogsummary <- function(sumLM,
                          logfile="./vartmp/MISTE_model_summary.txt", ...) {
-  if(messVerb) message("MISTElite sink model summary to file '",
+  if(messVerb) message("MISTElite sink model summary to file  '",
            logfile, "'")
   sink(file=logfile)
     print(sumLM) # R lm() dependency
@@ -442,11 +442,13 @@ misteMODELdiagnosticText <- function(input, ...) {
   sumLM <- summary(LM) # R lm() dependency
   RSE <- get("RSE", envir=MISTE)
   RSQ <- get("RSQ", envir=MISTE)
+  epochentry_discharge <- get("epochentry_discharge", envir=MISTE)
+  epochexit_discharge  <- get("epochexit_discharge",  envir=MISTE)
   misteMODELlogsummary(sumLM)
   duan <- get("duansmearing", envir=MISTE)
   #isGAM  <- input$cb.modelgam
      text <- paste0("MODEL SUMMARY: ",
-                    "Rsq=",round(RSQ, digits=3), ", ",
+                    "Rsq=", round(RSQ, digits=3), ", ",
                     "RSE=", round(RSE, digits=4)
                    )
   if(input$cb.duansmearing & input$cb.log.site2) {
@@ -454,11 +456,13 @@ misteMODELdiagnosticText <- function(input, ...) {
   } else {
     text <- paste0(text, "") # hook left if extra info is ever desired
   }
-
-  residualtext <- paste0("RESIDUAL SUMMARY: ",
-                  paste(round(summary(residuals(LM)), digits=4), collapse=", "),
-                     " : (min, 1Q, Median, 3Q, max)")
-  return(c(text,residualtext))
+  rs <- round(summary(residuals(LM)), digits=4)
+  residualtext <- paste0("RESIDUAL SUMMARY: min=",    rs[1], ", 1Q=",  rs[2],
+                         ", median=", rs[3], ", 3Q=", rs[4], ", max=", rs[5])
+  epctext <- paste0("EPOCH EDGE DISCHARGES: ", epochentry_discharge, " (entry) and ",
+                                               epochexit_discharge,
+                    " (exit) (each extracted on-the-fly)")
+  return(c(text, residualtext, epctext))
 }
 
 # MISTE GRAPHICAL OUTPUT
@@ -706,8 +710,10 @@ misteTimeSeriesPlot_Product <- function(input, pdfoutput=FALSE, ...) {
       if(messVerb & ! pdfoutput) {
          epochentry <- bQ[length(bQ)]; epochexit <- aQ[1]
          if(isYlog) { epochentry <- 10^epochentry; epochexit <- 10^epochexit }
-         message("MISTElite left-right anchors: Q = [",
-                  epochentry, " <=> ", epochexit,  "] cfs (on-the-fly determined)")
+         #message("MISTElite left-right anchors: Q = [",
+         #         epochentry, " <=> ", epochexit,  "] cfs (on-the-fly determined)")
+         assign("epochentry_discharge", epochentry, envir=MISTE)
+         assign("epochexit_discharge",  epochexit,  envir=MISTE)
       }
       lines(bDT, bQ, lty=4, col=4, lwd=0.76)
       lines(aDT, aQ, lty=4, col=4, lwd=0.76)

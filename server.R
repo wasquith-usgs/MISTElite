@@ -1,5 +1,5 @@
 library(shiny)
-plotrendW <- 800; plotrendH <- 800
+plotrendW <- 800; plotrendH <- 900
 
 # Define server logic required to draw a histogram
 shinyServer(function(input, output) {
@@ -168,9 +168,6 @@ shinyServer(function(input, output) {
        output$lmdia.text <- renderText(txt)
     } else {
        misteMODEL(XY, input);#print("misteMODEL")
-       diagnosticText    <- misteMODELdiagnosticText(input);#print("misteMODELdiagnosticText")
-       output$lmdia.text <- renderText(diagnosticText[1])
-       output$lmres.text <- renderText(diagnosticText[2])
        site1UV4prediction <- dataExtract_site1_output();#print("dataExtract_site1_output")
        misteMODELpredict(site1UV4prediction, input);#print("misteMODELpredict")
 
@@ -192,6 +189,11 @@ shinyServer(function(input, output) {
          misteLagCorrPlot(           input, pdfoutput=TRUE)
          misteBoxPlot(               input, pdfoutput=TRUE)
     }
+    diagnosticText    <- misteMODELdiagnosticText(input);#print("misteMODELdiagnosticText")
+    output$lmdia.text <- renderText(diagnosticText[1])
+    output$lmres.text <- renderText(diagnosticText[2])
+    output$lmepc.text <- renderText(diagnosticText[3])
+
     file <- "./vartmp/MISTE.RData"
     if(messVerb) message("MISTElite save the MISTE R-envir in   '", file, "'")
     save(MISTE, file=file)
@@ -200,7 +202,6 @@ shinyServer(function(input, output) {
     message("  WHA-TODO: archive MISTElite settings and archival report.")
     message("  WHA-TODO: more introspection of local-time zone implicitness.")
     message("  WHA-TODO: code cleaning and use misteLogarithms()")
-    message("  WHA-TODO: MUD file specifications (formal?)")
     message("-------- MISTElite end"); message("")
   }, width=plotrendW, height=plotrendH)
 })
