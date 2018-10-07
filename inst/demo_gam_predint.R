@@ -15,7 +15,7 @@ X <- rnorm(n, mean=100, sd=20) # simulate some X
 Y <- 0.6*X + rnorm(n, sd=5) # simulate some Y
 plot(X,Y) # show strong linear relation
 
-# STEP 1: Start from a know location. Fit a line, extract the prediction interval as if
+# STEP 1: Start from a known location. Fit a line, extract the prediction interval as if
 # the sample were the new data being used for prediction.
 LM <- lm(Y~X) #  # fit the model, conventional OLS
 PL <- predict(LM, interval = c("prediction"), se.fit=TRUE)
@@ -42,8 +42,13 @@ PG$residual.scale <- GM$sigma # just assign the SIGMA to the residual.scale to m
 # PL nomenclature
 print(head(PG))
 
-# Next, let us extract the degrees of freedom of the GAM. The value is 2, which matches
-# that of the linear model because the GAM is fitting a linear model: slope + intercept.
+# STEP 3: Before we get further down the line with the prediction limits, let us
+# plot the leverages. We had better see a one-to-one relationship, which we do.
+plot((PG$se.fit/PG$residual.scale)^2, hatvalues(LM))
+
+# STEP 4: Next, let us extract the degrees of freedom of the GAM. The value is 2,
+# which matches that of the linear model because the GAM is fitting a
+# linear model: slope + intercept.
 Gdf <- sum(GM$edf) # value is 2 (!!!!! no smoothing !!!!!)
 # Next, let us compute the equivalent QT.
 GQT <- abs(qt(0.05/2, (n-Gdf))) # quantile of t-distribution
@@ -114,18 +119,18 @@ points(PL$fit.upr, PGs$upr, col=4)
 # Finally, this helper function could be used for prediction limit computation.
 
 "gamIntervals" <-
-function(gam_predicts_with_se.fit, gam=NULL,
+function(gam_predicts_with_se.fit, gam=NULL, sigma=NULL,
          interval=c("none", "confidence", "prediction"), level=0.95, ...) {
    # Demo: library(mgcv)
    #       X <- 2*pi*(1:360)/360 # simulate some X
    #       Y <- 1.6*sin(X) + 40*cos(X) + rnorm(length(X), sd=12)
    #     GAM <- gam(Y~s(X)); PGAM <- predict(GAM, se.fit=TRUE)
-   #     PGAM <- gamIntervals(PGAM, gam=GAM)
+   #     PGAM <- gamIntervals(PGAM, gam=GAM, interval="confidence")
    #     print(head(PGAM))
    #     print(head(PGAM$leverage)); print(head(GAM$hat)) # see they are the value
    # plot(GAM$hat, (PGAM$se.fit/PGAM$residual.scale)^2)
    # Compare what the GAM says its leverage values are to back computed.
-   # The plot() only works because predict() called back on the actuall model.
+   # The plot() only works because predict() called back on the actual model.
    if(class(gam)[1] != "gam") {
       warning("need the actual GAM model too via the 'gam' argument")
       return()
@@ -137,7 +142,8 @@ function(gam_predicts_with_se.fit, gam=NULL,
    }
    interval <- match.arg(interval)
    sum.gam <- summary(gam); n <- sum.gam$n # summary.gam() and the sample size
-   z$residual.scale <- sigma <- sqrt(sum.gam$scale) # residual standard error
+   if(is.null(sigma)) sigma <- sqrt(sum.gam$scale)
+   z$residual.scale <- sigma # residual standard error
    df <- n-sum(gam$edf)           # total degrees of freedom
    QT <- abs(qt((1-level)/2, df)) # will do the +/- separately
    z$leverage <- (z$se.fit/sigma)^2
@@ -149,7 +155,6 @@ function(gam_predicts_with_se.fit, gam=NULL,
       z$lwr <- z$fit - sigma*QT*tmp
       z$upr <- z$fit + sigma*QT*tmp
    }
-   print(head(z))
    attr(z, "interval")                  <- interval
    attr(z, "level")                     <- level
    attr(z, "t-dist_degrees_of_freedom") <- df
