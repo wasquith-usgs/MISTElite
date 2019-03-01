@@ -1,0 +1,29 @@
+
+
+#-----------------------------------------------------------------------------------------
+02/27/2019
+William,
+
+Here you go, tried to make it as concise as possible
+
+Description of problem: MISTE UV will not run for a  recent (Un-Approved) specified
+period of time, keeps failing.  MISTE UV Log shows some column name and NaN problems,
+like it can't parse the data correctly from NWISWEB.
+
+If an older already approved period is selected using the same two sites MISTEUV runs
+without a problem and gives a result.
+
+Background: USGS hydro tech workflow is to work and screen their data in real time as
+much as possible, this process involves flagging the discharge with various qualifiers
+until such time as the data can be finalized, properly estimated if need be, peer
+reviewed and set to Approved in AQ and in turn on NWISWEB.
+
+These qualifiers tied to discharge before the record is Approved distort the amount
+of data columns and position of the data columns that MISTE UV expects to be in a
+fixed format.
+
+Solution: Remove all AQ qualifiers tied to discharge on both sites, removing only
+one sites qualifiers also yielded a failure with MISTE UV.
+Thanks,
+Matt N.
+#-----------------------------------------------------------------------------------------
